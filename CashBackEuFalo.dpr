@@ -73,13 +73,10 @@ begin
   if ParamStr(1) <> '--cashbackeufalo' then
     begin
       Application.MessageBox('Parametros não definidos. Execução interrompida', 'CashBack - EuFalo.com');
+      Exit;
     end
-  else if ParamStr(2) = '--postar' then
-    TControllerEuFalo.PostOnEuFalo
-    else if ParamStr(2) = '--postar' then
-      TControllerEuFalo.PostOnEuFalo
-        else
-          Exit;
+  else
+    TControllerEuFalo.PostOnEuFalo;
 
   Application.Initialize;
   Application.MainFormOnTaskbar := True;
