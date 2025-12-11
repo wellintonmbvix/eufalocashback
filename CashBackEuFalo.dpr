@@ -65,7 +65,9 @@ uses
   model.service.cashback.interfaces in 'sources\model\service\model.service.cashback.interfaces.pas',
   model.service.cashback.interfaces.impl in 'sources\model\service\impl\model.service.cashback.interfaces.impl.pas',
   model.service.loja.interfaces in 'sources\model\service\model.service.loja.interfaces.pas',
-  model.service.loja.interfaces.impl in 'sources\model\service\impl\model.service.loja.interfaces.impl.pas';
+  model.service.loja.interfaces.impl in 'sources\model\service\impl\model.service.loja.interfaces.impl.pas',
+  model.service.fabricante.interfaces in 'sources\model\service\model.service.fabricante.interfaces.pas',
+  model.service.fabricante.interfaces.impl in 'sources\model\service\impl\model.service.fabricante.interfaces.impl.pas';
 
 {$R *.res}
 

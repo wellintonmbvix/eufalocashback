@@ -5,6 +5,7 @@ interface
 uses
   System.SysUtils,
   System.JSON,
+  System.DateUtils,
 
   model.tokens,
   model.service.token.interfaces,
@@ -111,7 +112,7 @@ begin
         FS.LongTimeFormat := 'hh:nn:ss';
         if item.TryGetValue('expiration', jv) then
           expiration := FormatDateTime('yyyy-mm-dd hh:nn:ss',
-            StrToDateTime(jv.Value, FS));
+            IncDay(StrToDateTime(jv.Value, FS), -1));
 
         sqlBlock.AppendLine('  vUserId = ' + QuotedStr(userID) + ';');
         sqlBlock.AppendLine('  vToken = ' + QuotedStr(token) + ';');

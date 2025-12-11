@@ -12,6 +12,7 @@ Integrar sistemas de frente de loja com a API da Nummus, possibilitando:
   - Matriz/Filiais
   - Vendedores
   - Categorias
+  - Fabricantes
   - Produtos
   - Clientes
 - Consulta de cashback disponível para um cliente.
@@ -74,14 +75,15 @@ C:\CSSISTEMAS\
 3|{codigo_cliente_pf}|{nome_cliente}|{sexo (Masculino/Feminino)}|{data_nascimento}|{data_cadastro}|{cpf}|{email}|{codigo_loja_cadastro}|{logradouro}|{numero}|{complemento}|{bairro}|{cidade}|{uf}|{cep}|{pais}|{ddd_fone1}|{ddd_fone2}|{ddd_fone3}
 4|{codigo_cliente_pj}|{razao_social}|{nome_fantasia}|{cnpj}|{codigo_loja_cadastro}|{site}|{facebook}|{instagram|{logradouro}|{numero}|{complemento}|{bairro}|{cidade}|{uf}|{cep}|{brasil}|{ddd_fone1}|{ddd_fone2}|{ddd_fone3|{cpf_responsavel}|{email}
 5|{codigo_categoria}|{codigo_categoria_pai}
-6|{codigo_produto}|{ean}|{nome_produto}|{descricao}|{url_completa_produto}|{url_completa_imagem}|{preco_produto}|{preco_promocional}|{estoque}|{ativo (true/false)}|{codigo_interno_fab}|{codigo_categoria}|{unidade (Kg,g,l,ml,un,Cx)}|{valor_unidade}
-7|{codigo_forma_pagto}|{forma_pagto}
-8|{data_venda}|{codigo_loja_cadastro}|{nome_fantasia_loja}|{codigo_unico_da_venda}|{codigo_cliente}|{cpf_cliente}|{valor_total_liquido}|{desconto}|{comissao}|{codigo_vendedor}|{nome_vendedor}|{codigo_forma_pagto}*|{forma_pagto}*|{codigo_forma_envio}*|{forma_envio}*|{frete}|{indicador}*
-9|{data_venda}|{codigo_loja_cadastro}|{nome_fantasia_loja}|{codigo_unico_da_venda}|{numero_item}|{codigo_produto}|{quantidade}|{valor_liquido_produto}**|{desconto}|{comissao}
-10|{data_venda}|{codigo_loja_cadastro}|{nome_fantasia_loja}|{codigo_unico_da_venda}|{codigo_forma_pagto}|{forma_pagto}|{valor}
-11|{data_venda}|{codigo_loja_cadastro}|{nome_fantasia_loja}|{codigo_unico_da_venda}
-12|{cpf}|{valor_da_compra}*
-13|{cpf}|{valor_da_compra}
+6|{codigo_fabricnate}|{nome_fabricante}
+7|{codigo_produto}|{ean}|{nome_produto}|{descricao}|{url_completa_produto}|{url_completa_imagem}|{preco_produto}|{preco_promocional}|{estoque}|{ativo (true/false)}|{codigo_interno_fab}|{codigo_categoria}|{unidade (Kg,g,l,ml,un,Cx)}|{valor_unidade}
+8|{codigo_forma_pagto}|{forma_pagto}
+9|{data_venda}|{codigo_loja_cadastro}|{nome_fantasia_loja}|{codigo_unico_da_venda}|{codigo_cliente}|{cpf_cliente}|{valor_total_liquido}|{desconto}|{comissao}|{codigo_vendedor}|{nome_vendedor}|{codigo_forma_pagto}*|{forma_pagto}*|{codigo_forma_envio}*|{forma_envio}*|{frete}|{indicador}*
+10|{data_venda}|{codigo_loja_cadastro}|{nome_fantasia_loja}|{codigo_unico_da_venda}|{numero_item}|{codigo_produto}|{quantidade}|{valor_liquido_produto}**|{desconto}|{comissao}
+11|{data_venda}|{codigo_loja_cadastro}|{nome_fantasia_loja}|{codigo_unico_da_venda}|{codigo_forma_pagto}|{forma_pagto}|{valor}
+12|{data_venda}|{codigo_loja_cadastro}|{nome_fantasia_loja}|{codigo_unico_da_venda}
+13|{cpf}|{valor_da_compra}*
+14|{cpf}|{valor_da_compra}
 ```
 
 ### Significado de cada linha do arquivo `req.001`
@@ -96,14 +98,15 @@ Cada linha do arquivo `req.001` inicia com um identificador numérico (0 a 13). 
 | **3** | Cadastro ou atualização de Pessoa Física. |
 | **4** | Cadastro ou atualização de Pessoa Jurídica. |
 | **5** | Cadastro ou atualização de Categoria(s). |
-| **6** | Cadastro ou atualização de Produto(s). |
-| **7** | Cadastro ou atualização de Forma(s) de Pagamento. |
-| **8** | Inclusão de Venda. |
-| **9** | Inclusão dos Item(ns) da Venda. |
-| **10** | Inclusão da(s) Forma(s) de Pagamento da Venda. |
-| **11** | Cancelamento de Venda. |
-| **12** | Consulta de Cashback por CPF. |
-| **13** | Solicitação de Resgate de Cashback por CPF. |
+| **6** | Cadastro ou atualização de Fabricantes(s). |
+| **7** | Cadastro ou atualização de Produto(s). |
+| **8** | Cadastro ou atualização de Forma(s) de Pagamento. |
+| **9** | Inclusão de Venda. |
+| **10** | Inclusão dos Item(ns) da Venda. |
+| **11** | Inclusão da(s) Forma(s) de Pagamento da Venda. |
+| **12** | Cancelamento de Venda. |
+| **13** | Consulta de Cashback por CPF. |
+| **14** | Solicitação de Resgate de Cashback por CPF. |
 
 ---
 
@@ -118,9 +121,10 @@ Cada linha do arquivo `req.001` inicia com um identificador numérico (0 a 13). 
 6|{status (Success/Error)}|{mensagem (vazio caso de "Success")}
 7|{status (Success/Error)}|{mensagem (vazio caso de "Success")}
 8|{status (Success/Error)}|{mensagem (vazio caso de "Success")}
-11|{status (Success/Error)}|{mensagem (vazio caso de "Success")}
-12|{status (Success/Error)}|{saldo)
-12|{status (Success/Error)}|{mensagem}
+9|{status (Success/Error)}|{mensagem (vazio caso de "Success")}
+12|{status (Success/Error)}|{mensagem (vazio caso de "Success")}
+13|{status (Success/Error)}|{saldo)
+14|{status (Success/Error)}|{mensagem}
 ```
 
 ---

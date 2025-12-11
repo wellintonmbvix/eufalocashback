@@ -57,6 +57,7 @@ type
     class function CreateOrUpdateStore(storeArray: TJSONArray; token: String; out msgError: String): Boolean;
     class function CreateOrUpdateProduct(productObject: TJSONArray; token: String; out msgError: String): Boolean;
     class function CreateOrUpdateCategory(categoryArray: TJSONArray; token: String; out msgError: String): Boolean;
+    class function CreateOrUpdateManufacture(manufactureArray: TJSONArray; token: String; out msgError: String): Boolean;
     class function CreateOrUpdatePaymentMethod(paymentMethodArray: TJSONArray; token: String; out msgError: String): Boolean;
     class function CreateOrUpdateSales(salesArray: TJSONArray; token: String; out msgError: String): Boolean;
     class function DeleteSales(salesArray: TJSONArray; token: String; out msgError: String): Boolean;
@@ -93,6 +94,7 @@ uses
   model.service.vendas.interfaces,
   model.service.formaPagto.interfaces,
   model.service.cashback.interfaces,
+  model.service.fabricante.interfaces,
 
   model.service.token.interfaces.impl,
   model.service.categoria.interfaces.impl,
@@ -103,6 +105,7 @@ uses
   model.service.vendas.interfaces.impl,
   model.service.formaPagto.interfaces.impl,
   model.service.cashback.interfaces.impl,
+  model.service.fabricante.interfaces.impl,
 
   controller.dto.token.interfaces,
   controller.dto.loja.interfaces,
@@ -150,6 +153,7 @@ var
   aVendaCanc  : TJSONArray;
   aCashBack   : TJSONArray;
   aLoja       : TJSONArray;
+  aFabricante : TJSONArray;
 
   // variáveis temporárias usadas dentro do loop
   oVendedor        : TJSONObject;
@@ -168,6 +172,7 @@ var
   oVendaPagto      : TJSONObject;
   oCashBack        : TJSONObject;
   oLoja            : TJSONObject;
+  oFabricante      : TJSONObject;
 
   msg: String;
   idVenda: string;
@@ -206,6 +211,7 @@ begin
   aVendaCanc  := nil;
   aCashBack   := nil;
   aLoja       := nil;
+  aFabricante := nil;
 
   try
     sLista    := TStringList.Create;
@@ -222,6 +228,7 @@ begin
     aVendaCanc  := TJSONArray.Create;
     aCashBack   := TJSONArray.Create;
     aLoja       := TJSONArray.Create;
+    aFabricante := TJSONArray.Create;
 
     sLista.Delimiter := '|';
     sLista.StrictDelimiter := True;
@@ -467,7 +474,20 @@ begin
               end;
             end;
 
-          6: // Produto
+          6: // Fabricante
+            begin
+              oFabricante := TJSONObject.Create;
+              try
+                oFabricante.AddPair('fabricanteId', sLista[1]);
+                oFabricante.AddPair('fabricanteCI', sLista[1]);
+                oFabricante.AddPair('nomeFabricante', sLista[2]);
+                aFabricante.AddElement(oFabricante);
+              except
+                raise;
+              end;
+            end;
+
+          7: // Produto
             begin
               oProduto := TJSONObject.Create;
               try
@@ -492,7 +512,7 @@ begin
               end;
             end;
 
-          7: // Forma de pagamento
+          8: // Forma de pagamento
             begin
               oFormaPagto := TJSONObject.Create;
               try
@@ -506,7 +526,7 @@ begin
               end;
             end;
 
-          8: // Venda (cabeçalho)
+          9: // Venda (cabeçalho)
             begin
               idVenda :=
                 FormatFloat('00', StrToInt(sLista[2])) +
@@ -554,7 +574,7 @@ begin
               end;
             end;
 
-          9: // Item de venda (detalhe)
+          10: // Item de venda (detalhe)
             begin
               idVenda :=
                 FormatFloat('00', StrToInt(sLista[2])) +
@@ -579,7 +599,7 @@ begin
               end;
             end;
 
-          10: // Pagamento da venda (detalhe)
+          11: // Pagamento da venda (detalhe)
             begin
               idVenda :=
                 FormatFloat('00', StrToInt(sLista[2])) +
@@ -601,7 +621,7 @@ begin
               end;
             end;
 
-          11: // Cancelamento / exclusão de venda
+          12: // Cancelamento / exclusão de venda
             begin
               idVenda :=
                 FormatFloat('00', StrToInt(sLista[2])) +
@@ -611,7 +631,7 @@ begin
               aVendaCanc.Add(idVenda); // string adicionada
             end;
 
-          12: // Lista cashback por CPF
+          13: // Lista cashback por CPF
             begin
               oCashBack := TJSONObject.Create;
 
@@ -631,7 +651,7 @@ begin
               end;
             end;
 
-          13: // Resgatar cashback
+          14: // Resgatar cashback
             begin
               oCashBack := TJSONObject.Create;
 
@@ -687,6 +707,14 @@ begin
           WriteResponse('5', 'Error', msg)
         else
           WriteResponse('5', 'Success', '');
+      end;
+
+      if aFabricante.Count > 0 then
+      begin
+        if not CreateOrUpdateManufacture(aFabricante, sToken, msg) then
+          WriteResponse('', 'Error', msg)
+        else
+          WriteResponse('', 'Success', '');
       end;
 
       if aProduto.Count > 0 then
@@ -755,6 +783,7 @@ begin
     FreeAndNil(aVenda);
     FreeAndNil(aVendaCanc);
     FreeAndNil(aCashBack);
+    FreeAndNil(aFabricante);
 
     FreeAndNil(sLista);
   except
@@ -1950,6 +1979,120 @@ begin
     on E: Exception do
     begin
       msgError := 'Erro ao consultar categoria local: ' + E.Message;
+      Result := False;
+      Exit;
+    end;
+  end;
+end;
+
+class function TControllerEuFalo.CreateOrUpdateManufacture(manufactureArray: TJSONArray;
+  token: String; out msgError: String): Boolean;
+var
+  restClient: TRESTClient;
+  restResponse: TRESTResponse;
+  restRequest: TRESTRequest;
+  jsonBody: string;
+  singleObj: TJSONObject;
+begin
+  Result := False;
+  restClient := nil;
+  restResponse := nil;
+  restRequest := nil;
+  msgError := '';
+
+  var IFabricanteService := TIFabricanteService.New;
+
+  try
+    try
+      IFabricanteService.Save(manufactureArray, msgError);
+      if msgError.Length > 0 then
+        begin
+          TRoutines.GenerateLogs(tpError, msgError);
+          ShowTemporaryMessageForm(msgError, 3, mtError);
+        end;
+    except
+      on E: Exception do
+        begin
+          msgError := E.Message;
+          TRoutines.GenerateLogs(tpError, msgError);
+          ShowTemporaryMessageForm(msgError, 3, mtError);
+          Exit;
+        end;
+    end;
+
+    // preparo e envio da requisição REST
+    restClient := TRESTClient.Create(nil);
+    restResponse := TRESTResponse.Create(nil);
+    restRequest := TRESTRequest.Create(nil);
+    try
+      restClient.BaseURL := _URL;
+      restRequest.Client := restClient;
+      restRequest.Response := restResponse;
+      restRequest.Timeout := 8000;
+
+      restRequest.Method := TRESTRequestMethod.rmPOST;
+      restRequest.Resource := '/api/Fabricante/Salvar';
+      restRequest.Params.Clear;
+      restRequest.AddParameter('Content-Type', 'application/json',
+        pkHTTPHEADER, [poDoNotEncode]);
+      restRequest.AddParameter('Accept', 'application/json',
+        pkHTTPHEADER, [poDoNotEncode]);
+      restRequest.AddParameter('Authorization', 'Bearer ' + token,
+        pkHTTPHEADER, [poDoNotEncode]);
+
+      if (manufactureArray.Count > 0) then
+        begin
+          for var i := 0 to manufactureArray.Count -1 do
+            begin
+              singleObj := manufactureArray.Items[i] as TJSONObject;
+              jsonBody := singleObj.ToJSON;
+
+              restRequest.AddBody(jsonBody,
+                TRESTContentType.ctAPPLICATION_JSON);
+
+              try
+                restRequest.Execute;
+                case restResponse.StatusCode of
+                  200: Result := True;
+                  401:
+                    begin
+                      msgError := 'Erro: 401 - Unauthorized';
+                      TRoutines.GenerateLogs(tpError, msgError);
+                      ShowTemporaryMessageForm(msgError, 3, mtError);
+                    end;
+                  500:
+                    begin
+                      msgError := 'Erro: 500 - Internal Server Error';
+                      TRoutines.GenerateLogs(tpError, msgError);
+                      ShowTemporaryMessageForm(msgError, 3, mtError);
+                    end
+                  else
+                    begin
+                      msgError := 'Erro não especificado (HTTP ' +
+                        restResponse.StatusCode.ToString + ')';
+                      TRoutines.GenerateLogs(tpError, msgError);
+                      ShowTemporaryMessageForm(msgError, 3, mtError);
+                    end;
+                end;
+              except
+                on E: Exception do
+                begin
+                  msgError := 'Erro de comunicação: ' + E.Message;
+                  ShowTemporaryMessageForm(msgError, 3, mtError);
+                end;
+              end;
+            end;
+        end;
+    finally
+      restRequest.Free;
+      restResponse.Free;
+      restClient.Free;
+    end;
+
+  except
+    on E: Exception do
+    begin
+      msgError := 'Erro ao consultar venda local: ' + E.Message;
       Result := False;
       Exit;
     end;
