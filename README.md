@@ -85,6 +85,8 @@ C:\CSSISTEMAS\
 13|{cpf}|{valor_da_compra}*
 14|{cpf}|{valor_da_compra}
 ```
+-*: Campos que podem estar vazios
+-**: Valor total já multiplicado pela quantidade com e com o abastimento do desconto
 
 ### Significado de cada linha do arquivo `req.001`
 
