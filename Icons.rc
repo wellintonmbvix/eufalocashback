@@ -1,0 +1,3 @@
+INFO_ICON	RCDATA	"assets/information.png"
+WARNING_ICON	RCDATA	"assets/warning.png"
+ERROR_ICON	RCDATA	"assets/cross.png"

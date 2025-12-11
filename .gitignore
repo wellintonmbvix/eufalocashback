@@ -1,0 +1,7 @@
+**/bin/
+**/dcp/
+**/dcu/
+**/__history
+**/__recovery
+**/*.exe
+./req.001.example.txt
