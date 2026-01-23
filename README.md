@@ -84,9 +84,15 @@ C:\CSSISTEMAS\
 12|{data_venda}|{codigo_loja_cadastro}|{nome_fantasia_loja}|{codigo_unico_da_venda}
 13|{cpf}|{valor_da_compra}*
 14|{cpf}|{valor_da_compra}
+15|***
+16|***
+17|{cpf}
+18|{data_venda}|{codigo_loja_cadastro}|{nome_fantasia_loja}|{codigo_unico_da_venda}|{cpf}|{numero_do_voucher}
+19|{data_venda}|{codigo_loja_cadastro}|{nome_fantasia_loja}|{codigo_unico_da_venda}
 ```
 - `*`: Campos que podem estar vazios.
 - `**`: Valor total já multiplicado pela quantidade com e com o abatimento do desconto.
+- `***`: Comandos que não esperam nenhum parâmetro
 
 ### Significado de cada linha do arquivo `req.001`
 
@@ -107,8 +113,13 @@ Cada linha do arquivo `req.001` inicia com um identificador numérico (0 a 13). 
 | **10** | Inclusão dos Item(ns) da Venda. |
 | **11** | Inclusão da(s) Forma(s) de Pagamento da Venda. |
 | **12** | Cancelamento de Venda. |
-| **13** | Consulta de Cashback por CPF. |
-| **14** | Solicitação de Resgate de Cashback por CPF. |
+| **13** | Consulta de Cashback Instântaneo por CPF. |
+| **14** | Solicitação de Resgate de Cashback Instântaneo por CPF. |
+| **15** | Retorna uma lista de cashback's por meta disponíveis. |
+| **16** | Confirma o recebimento da lista de cashback's do comando anterior (Necessário para o comando anterior trazer nova lista). |
+| **17** | Consulta de Cashback de Meta por CPF. |
+| **18** | Solicitação de Resgate de Cashback de Meta por CPF. |
+| **19** | Cancelamente de Resgate de Cashback de Meta. |
 
 ---
 
@@ -127,6 +138,11 @@ Cada linha do arquivo `req.001` inicia com um identificador numérico (0 a 13). 
 12|{status (Success/Error)}|{mensagem (vazio caso de "Success")}
 13|{status (Success/Error)}|{saldo)
 14|{status (Success/Error)}|{mensagem}
+15|{status (Success/Error)}|{mensagem} (Em caso de "Error") ou {chave};{codigo_interno_cliente};{numero_voucher};{cpf};{data};{prazo_entrega};{premio};{valor} (Em caso de "Success")
+16|{status (Success/Error)}|{mensagem (vazio caso de "Success")}
+17|{status (Success/Error)}|{mensagem} (Em caso de "Error") ou {chave};{codigo_interno_cliente};{numero_voucher};{cpf};{data};{prazo_entrega};{premio};{valor} (Em caso de "Success")
+18|{status (Success/Error)}|{mensagem (vazio caso de "Success")}
+19|{status (Success/Error)}|{mensagem (vazio caso de "Success")}
 ```
 
 ---

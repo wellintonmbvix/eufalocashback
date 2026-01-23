@@ -87,11 +87,14 @@ end;
 constructor TIConnectionFirebird.Create;
 var
   arqCfg : TIniFile;
+  caminhoEXE: String;
 begin
+  caminhoExe := ExtractFilePath(ParamStr(0));
+  FDPhysFBDriverLink := TFDPhysFBDriverLink.Create(nil);
+  FDPhysFBDriverLink.VendorLib := caminhoEXE + 'fbembed.dll';
   FDConnection := TFDConnection.Create(nil);
   FDConnection.BeforeConnect := OnBeforeConnect;
   FDConnection.LoginPrompt := False;
-  FDPhysFBDriverLink := TFDPhysFBDriverLink.Create(nil);
   FDGUIxWaitCursor := TFDGUIxWaitCursor.Create(nil);
 end;
 
@@ -145,6 +148,8 @@ begin
       with FDConnection.Params do
       begin
         Clear;
+        // *** Parametros comentados são de configurações para
+        // *** ambientes em que o serviço do FireBird esteja sendo executado
 
         Add('DriverID=FB');
         Add('Database=' + banco);

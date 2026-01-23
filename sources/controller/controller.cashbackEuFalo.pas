@@ -61,8 +61,13 @@ type
     class function CreateOrUpdatePaymentMethod(paymentMethodArray: TJSONArray; token: String; out msgError: String): Boolean;
     class function CreateOrUpdateSales(salesArray: TJSONArray; token: String; out msgError: String): Boolean;
     class function DeleteSales(salesArray: TJSONArray; token: String; out msgError: String): Boolean;
-    class function GetCashBack(cashBack: TJSONObject; token: String; out retorno: String): Boolean;
-    class function RescueCashBack(cashBack: TJSONObject; token: String; out retorno: String): Boolean;
+    class function GetCashBackSnapshot(cashBack: TJSONObject; token: String; out retorno: String): Boolean;
+    class function RescueCashBackSnapShot(cashBack: TJSONObject; token: String; out retorno: String): Boolean;
+    class function GetCashBackList(token: String; out retorno: String): Boolean;
+    class function ConfirmReceiptCashback(token: String; out retorno: String): Boolean;
+    class function GetCashBackByCpf(body: TJSONObject; token: String; out retorno: String): Boolean;
+    class function RescueCashBack(cashBack: TJSONArray; token: String; out retorno: String): Boolean;
+    class function CancelUsagedCashback(cashBacks: TJSONArray; token: String; out retorno: String): Boolean;
   end;
 
 type
@@ -531,7 +536,7 @@ begin
               idVenda :=
                 FormatFloat('00', StrToInt(sLista[2])) +
                 FormatDateTime('ddmmyyyy', StrToDate(sLista[1])) +
-                sLista[4];
+                FormatFloat('000000', StrToInt(sLista[4]));
 
               oVenda := TJSONObject.Create;
               try
@@ -579,7 +584,7 @@ begin
               idVenda :=
                 FormatFloat('00', StrToInt(sLista[2])) +
                 FormatDateTime('ddmmyyyy', StrToDate(sLista[1])) +
-                sLista[4];
+                FormatFloat('000000', StrToInt(sLista[4]));
 
               if not mapItens.TryGetValue(idVenda, aVendaItem) then
                 raise Exception.Create('Item encontrado sem venda correspondente: ' + idVenda);
@@ -604,20 +609,23 @@ begin
               idVenda :=
                 FormatFloat('00', StrToInt(sLista[2])) +
                 FormatDateTime('ddmmyyyy', StrToDate(sLista[1])) +
-                sLista[4];
+                FormatFloat('000000', StrToInt(sLista[4]));
 
               if not mapPagtos.TryGetValue(idVenda, aVendaPagto) then
                 raise Exception.Create('Pagamento encontrado sem venda correspondente: ' + idVenda);
 
               oVendaPagto := TJSONObject.Create;
               try
-                oVendaPagto.AddPair('formaPagamentoCI', sLista[5]);
-                oVendaPagto.AddPair('nomeFormaPagamento', sLista[6]);
-                oVendaPagto.AddPair('valor', sLista[7].Replace(',','.'));
-                aVendaPagto.AddElement(oVendaPagto); // posse transferida
-              except
+                try
+                  oVendaPagto.AddPair('formaPagamentoCI', sLista[5]);
+                  oVendaPagto.AddPair('nomeFormaPagamento', sLista[6]);
+                  oVendaPagto.AddPair('valor', sLista[7].Replace(',','.'));
+                  aVendaPagto.AddElement(oVendaPagto); // posse transferida
+                except
+                  raise;
+                end;
+              finally
                 oVendaPagto.Free;
-                raise;
               end;
             end;
 
@@ -626,12 +634,12 @@ begin
               idVenda :=
                 FormatFloat('00', StrToInt(sLista[2])) +
                 FormatDateTime('ddmmyyyy', StrToDate(sLista[1])) +
-                sLista[4];
+                FormatFloat('000000', StrToInt(sLista[4]));
 
               aVendaCanc.Add(idVenda); // string adicionada
             end;
 
-          13: // Lista cashback por CPF
+          13: // Consulta cashback instântaneo por CPF
             begin
               oCashBack := TJSONObject.Create;
 
@@ -639,28 +647,7 @@ begin
                 try
                   oCashBack.AddPair('cpf', sLista[1]);
                   oCashBack.AddPair('valorCompra', sLista[2]);
-                  if not GetCashBack(oCashBack, sToken, msg) then
-                    WriteResponse('12', 'Error', msg)
-                  else
-                    WriteResponse('12', 'Success', msg);
-                except
-                  raise;
-                end;
-              finally
-                oCashBack.Free;
-              end;
-            end;
-
-          14: // Resgatar cashback
-            begin
-              oCashBack := TJSONObject.Create;
-
-              try
-                try
-                  oCashBack.AddPair('cpf', sLista[1]);
-                  oCashBack.AddPair('dataResgate', ConvertToISO8601(DateToStr(Now())));
-                  oCashBack.AddPair('valorCompra', sLista[2]);
-                  if not RescueCashBack(oCashBack, sToken, msg) then
+                  if not GetCashBackSnapshot(oCashBack, sToken, msg) then
                     WriteResponse('13', 'Error', msg)
                   else
                     WriteResponse('13', 'Success', msg);
@@ -670,6 +657,96 @@ begin
               finally
                 oCashBack.Free;
               end;
+            end;
+
+          14: // Resgatar cashback instântaneo
+            begin
+              oCashBack := TJSONObject.Create;
+
+              try
+                try
+                  oCashBack.AddPair('cpf', sLista[1]);
+                  oCashBack.AddPair('dataResgate', ConvertToISO8601(DateToStr(Now())));
+                  oCashBack.AddPair('valorCompra', sLista[2]);
+                  if not RescueCashBackSnapShot(oCashBack, sToken, msg) then
+                    WriteResponse('14', 'Error', msg)
+                  else
+                    WriteResponse('14', 'Success', msg);
+                except
+                  raise;
+                end;
+              finally
+                oCashBack.Free;
+              end;
+            end;
+
+          15: // Lista de cashback's por meta disponíveis
+            begin
+              if not GetCashBackList(sToken, msg) then
+                WriteResponse('15', 'Error', msg);
+            end;
+
+          16: // Confirma a importação dos cashbacks retornados no método "15"
+            begin
+              if not ConfirmReceiptCashback(sToken, msg) then
+                WriteResponse('16', 'Error', msg)
+              else
+                WriteResponse('16', 'Success', '');
+            end;
+
+          17: // Consulta cashback de meta por cpf
+            begin
+              oCashBack := TJSONObject.Create;
+
+              try
+                try
+                  oCashBack.AddPair('cpf', sLista[1]);
+                  if not GetCashBackByCpf(oCashBack, sToken, msg) then
+                    WriteResponse('17', 'Error', msg);
+                except
+                  raise;
+                end;
+              finally
+                oCashBack.Free;
+              end;
+            end;
+
+          18: // Baixar cashback
+            begin
+              oCashBack := TJSONObject.Create;
+
+              idVenda :=
+                FormatFloat('00', StrToInt(sLista[2])) +
+                FormatDateTime('ddmmyyyy', StrToDate(sLista[1])) +
+                FormatFloat('000000', StrToInt(sLista[4]));
+
+              oCashBack.AddPair('numeroVoucher', sLista[6]);
+              oCashBack.AddPair('dataBaixa', ConvertToISO8601(sLista[1]));
+              oCashBack.AddPair('cpf', sLista[5]);
+              oCashBack.AddPair('vendaContatoCI', idVenda);
+              aCashBack.AddElement(oCashBack);
+
+            end;
+
+          19: // Cancelar utilização do cashback
+            begin
+              var arr := TICashBackService.New.ReturnUsed(StrToDate(sLista[1]),
+                sLista[4].ToInteger,sLista[2].ToInteger);
+
+              if arr.Count > 0 then
+                begin
+                  try
+                    if not CancelUsagedCashback(arr, sToken, msg) then
+                      WriteResponse('19', 'Error', msg)
+                    else
+                      WriteResponse('19', 'Success', '');
+                  finally
+                    arr.Free;
+                  end;
+                end
+              else
+                WriteResponse('19', 'Error', 'Nenhum "Voucher" encontrado para venda'
+                + sLista[4] + ' do dia ' + sLista[1] + ' da loja ' + sLista[2]);
             end;
         end; // case
       end; // while
@@ -736,9 +813,9 @@ begin
       if aVendaCanc.Count > 0 then
       begin
         if not DeleteSales(aVendaCanc, sToken, msg) then
-          WriteResponse('11', 'Error', msg)
+          WriteResponse('12', 'Error', msg)
         else
-          WriteResponse('11', 'Success', '');
+          WriteResponse('12', 'Success', '');
       end;
 
       if aVenda.Count > 0 then
@@ -747,6 +824,14 @@ begin
           WriteResponse('8', 'Error', msg)
         else
           WriteResponse('8', 'Success', '');
+      end;
+
+      if aCashBack.Count > 0 then
+      begin
+        if not RescueCashBack(aCashBack, sToken, msg) then
+          WriteResponse('18', 'Error', msg)
+        else
+          WriteResponse('18', 'Success', '');
       end;
 
     finally
@@ -2350,7 +2435,7 @@ begin
   end;
 end;
 
-class function TControllerEuFalo.GetCashBack(cashBack: TJSONObject;
+class function TControllerEuFalo.GetCashBackSnapshot(cashBack: TJSONObject;
   token: string; out retorno: string): Boolean;
 var
   restClient: TRESTClient;
@@ -2468,7 +2553,7 @@ begin
   end;
 end;
 
-class function TControllerEuFalo.RescueCashBack(cashBack: TJSONObject;
+class function TControllerEuFalo.RescueCashBackSnapShot(cashBack: TJSONObject;
   token: string; out retorno: string): Boolean;
 var
   restClient: TRESTClient;
@@ -2584,6 +2669,602 @@ begin
       Result := False;
       Exit;
     end;
+  end;
+end;
+
+class function TControllerEuFalo.GetCashBackList(token: String;
+  out retorno: String): Boolean;
+var
+  restClient: TRESTClient;
+  restResponse: TRESTResponse;
+  restRequest: TRESTRequest;
+  jsonRoot: TJSONValue;
+  arr: TJSONArray;
+  item: TJSONValue;
+  jsonObj: TJSONObject;
+  arqResp: TextFile;
+begin
+  Result  := False;
+  retorno := '';
+  jsonRoot := nil;
+
+  restClient   := TRESTClient.Create(nil);
+  restResponse := TRESTResponse.Create(nil);
+  restRequest  := TRESTRequest.Create(nil);
+  try
+    restClient.BaseURL   := _URL;
+    restRequest.Client   := restClient;
+    restRequest.Response := restResponse;
+    restRequest.Method   := TRESTRequestMethod.rmGET;
+    restRequest.Timeout  := 8000;
+
+    restRequest.AddParameter('Content-Type', 'application/json', pkHTTPHEADER, [poDoNotEncode]);
+    restRequest.AddParameter('Accept', 'application/json', pkHTTPHEADER, [poDoNotEncode]);
+    restRequest.AddParameter('Authorization', 'Bearer ' + token, pkHTTPHEADER, [poDoNotEncode]);
+    restRequest.Resource := '/api/programafidelidade/resgatecashback/listar';
+
+    restRequest.Execute;
+
+    if restResponse.StatusCode = 200 then
+    begin
+      jsonRoot := TJSONObject.ParseJSONValue(restResponse.Content);
+
+      if not (jsonRoot is TJSONArray) then
+        begin
+          TRoutines.GenerateLogs(tpError, retorno);
+          ShowTemporaryMessageForm(retorno, 3, mtError);
+            ForceDirectories('C:\CSSISTEMAS');
+            AssignFile(arqResp, 'C:\CSSISTEMAS\resp.001');
+            Rewrite(arqResp);
+            WriteLn('15','Error', retorno);
+            CloseFile(arqResp);
+          abort;
+        end;
+
+      arr := jsonRoot as TJSONArray;
+
+      TICashbackService.New.Save(arr, retorno);
+
+      ForceDirectories('C:\CSSISTEMAS');
+      AssignFile(arqResp, 'C:\CSSISTEMAS\resp.001');
+      Rewrite(arqResp);
+      try
+        for item in arr do
+        begin
+          if item is TJSONObject then
+          begin
+            jsonObj := item as TJSONObject;
+
+            WriteLn(arqResp,
+              '15|Success|' +
+              jsonObj.GetValue('chave').ToString + ';' +
+              jsonObj.GetValue('contatoCI').ToString + ';' +
+              jsonObj.GetValue('numeroVoucher').Value + ';' +
+              jsonObj.GetValue('cpf').Value + ';' +
+              jsonObj.GetValue('data').Value + ';' +
+              jsonObj.GetValue('prazoEntrega').Value + ';' +
+              jsonObj.GetValue('premio').ToString + ';' +
+              jsonObj.GetValue('valor').Value
+            );
+          end;
+        end;
+      finally
+        CloseFile(arqResp);
+      end;
+
+      Result := True;
+    end;
+
+    case restResponse.StatusCode of
+      200: Result := True;
+      401:
+      begin
+        // retorno := 'Erro: 401 - Unauthorized';
+        TRoutines.GenerateLogs(tpError, retorno);
+        ShowTemporaryMessageForm(retorno, 3, mtError);
+      end;
+      500:
+      begin
+        // retorno := 'Erro: 500 - Internal Server Error';
+        TRoutines.GenerateLogs(tpError, retorno);
+        ShowTemporaryMessageForm(retorno, 3, mtError);
+      end;
+      else
+      begin
+        // retorno := 'Erro não especificado (HTTP ' + restResponse.StatusCode.ToString + ')';
+        TRoutines.GenerateLogs(tpError, retorno);
+        ShowTemporaryMessageForm(retorno, 3, mtError);
+      end;
+    end;
+
+  finally
+    jsonRoot.Free;
+    restRequest.Free;
+    restResponse.Free;
+    restClient.Free;
+  end;
+end;
+
+class function TControllerEuFalo.ConfirmReceiptCashback(token: String;
+  out retorno: String): Boolean;
+var
+  restClient: TRESTClient;
+  restResponse: TRESTResponse;
+  restRequest: TRESTRequest;
+  arr: TJSONArray;
+  jsonBody: string;
+  singleObj: TJSONObject;
+begin
+  Result  := False;
+  retorno := '';
+
+  try
+    arr := TICashBackService.New.GetNotSynced;
+
+    restClient   := TRESTClient.Create(nil);
+    restResponse := TRESTResponse.Create(nil);
+    restRequest  := TRESTRequest.Create(nil);
+    try
+      restClient.BaseURL := _URL;
+      restRequest.Client := restClient;
+      restRequest.Response := restResponse;
+      restRequest.Timeout := 8000;
+
+      restRequest.Method := TRESTRequestMethod.rmPOST;
+      restRequest.Resource := IfThen(arr.Count > 1,
+        '/api/programafidelidade/resgatecashback/confirmar/lista',
+          '/api/programafidelidade/resgatecashback/confirmar/item');
+      restRequest.Params.Clear;
+      restRequest.AddParameter('Content-Type', 'application/json',
+        pkHTTPHEADER, [poDoNotEncode]);
+      restRequest.AddParameter('Accept', 'application/json',
+        pkHTTPHEADER, [poDoNotEncode]);
+      restRequest.AddParameter('Authorization', 'Bearer ' + token,
+        pkHTTPHEADER, [poDoNotEncode]);
+
+      if arr.Count > 1 then
+        begin
+          // Envia o array completo
+          jsonBody := arr.ToJSON;
+        end
+      else if arr.Count = 1 then
+        begin
+          // Converte o único item do array para JSON de objeto
+          singleObj := arr.Items[0] as TJSONObject;
+          jsonBody := singleObj.ToJSON;
+        end
+      else
+        begin
+          // Caso não exista item (opcional)
+          // jsonBody := 'null';
+          jsonBody := '[]';  // ou escolha outra forma
+        end;
+
+      // usa o JSON passado - não criamos cópia de TJSONArray/TJSONObject aqui
+      restRequest.AddBody(jsonBody,
+        TRESTContentType.ctAPPLICATION_JSON);
+
+      try
+        restRequest.Execute;
+
+        case restResponse.StatusCode of
+          200:
+            begin
+              try
+                TICashBackService.New.Synchronize(arr, retorno);
+                Result := True;
+              except
+                TRoutines.GenerateLogs(tpError, retorno);
+                ShowTemporaryMessageForm(retorno, 3, mtError);
+                raise;
+              end;
+            end;
+          401:
+            begin
+              retorno := 'Erro: 401 - Unauthorized';
+              TRoutines.GenerateLogs(tpError, retorno);
+              ShowTemporaryMessageForm(retorno, 3, mtError);
+            end;
+          500:
+            begin
+              retorno := 'Erro: 500 - Internal Server Error';
+              TRoutines.GenerateLogs(tpError, retorno);
+              ShowTemporaryMessageForm(retorno, 3, mtError);
+            end
+          else
+            begin
+              retorno := 'Erro não especificado (HTTP ' +
+                restResponse.StatusCode.ToString + ')';
+              TRoutines.GenerateLogs(tpError, retorno);
+              ShowTemporaryMessageForm(retorno, 3, mtError);
+            end;
+        end;
+      except
+        on E: Exception do
+        begin
+          retorno := 'Erro de comunicação: ' + E.Message;
+          ShowTemporaryMessageForm(retorno, 3, mtError);
+        end;
+      end;
+    finally
+      arr.Free;
+      restRequest.Free;
+      restResponse.Free;
+      restClient.Free;
+    end;
+
+  except
+    on E: Exception do
+    begin
+      retorno := 'Erro ao consultar venda local: ' + E.Message;
+      Result := False;
+      Exit;
+    end;
+  end;
+end;
+
+class function TControllerEuFalo.GetCashBackByCpf(body: TJSONObject;
+  token: String; out retorno: String): Boolean;
+var
+  restClient: TRESTClient;
+  restResponse: TRESTResponse;
+  restRequest: TRESTRequest;
+  jsonRoot: TJSONValue;
+  arr: TJSONArray;
+  item: TJSONValue;
+  jsonObj: TJSONObject;
+  arqResp: TextFile;
+begin
+  Result  := False;
+  retorno := '';
+  jsonRoot := nil;
+
+  restClient   := TRESTClient.Create(nil);
+  restResponse := TRESTResponse.Create(nil);
+  restRequest  := TRESTRequest.Create(nil);
+  try
+    restClient.BaseURL   := _URL;
+    restRequest.Client   := restClient;
+    restRequest.Response := restResponse;
+    restRequest.Method   := TRESTRequestMethod.rmPOST;
+    restRequest.Timeout  := 8000;
+
+    restRequest.AddParameter('Content-Type', 'application/json',
+      pkHTTPHEADER, [poDoNotEncode]);
+    restRequest.AddParameter('Accept', 'application/json', pkHTTPHEADER, [poDoNotEncode]);
+    restRequest.AddParameter('Authorization', 'Bearer ' + token, pkHTTPHEADER, [poDoNotEncode]);
+    restRequest.Resource := '/api/programafidelidade/resgatecashback/listarPorCpf';
+
+          restRequest.AddBody(body.ToString,
+        TRESTContentType.ctAPPLICATION_JSON);
+
+    restRequest.Execute;
+
+    case restResponse.StatusCode of
+      200:
+        begin
+          jsonRoot := TJSONObject.ParseJSONValue(restResponse.Content);
+
+          if not (jsonRoot is TJSONArray) then
+            begin
+              TRoutines.GenerateLogs(tpError, retorno);
+              ShowTemporaryMessageForm(retorno, 3, mtError);
+                ForceDirectories('C:\CSSISTEMAS');
+                AssignFile(arqResp, 'C:\CSSISTEMAS\resp.001');
+                Rewrite(arqResp);
+                WriteLn('17','Error', retorno);
+                CloseFile(arqResp);
+              abort;
+            end;
+
+          arr := jsonRoot as TJSONArray;
+
+          TICashbackService.New.Save(arr, retorno);
+
+          ForceDirectories('C:\CSSISTEMAS');
+          AssignFile(arqResp, 'C:\CSSISTEMAS\resp.001');
+          Rewrite(arqResp);
+          try
+            for item in arr do
+            begin
+              if item is TJSONObject then
+              begin
+                jsonObj := item as TJSONObject;
+
+                WriteLn(arqResp,
+                  '17|Success|' +
+                  jsonObj.GetValue('chave').ToString + '|' +
+                  jsonObj.GetValue('contatoCI').ToString + '|' +
+                  jsonObj.GetValue('numeroVoucher').Value + '|' +
+                  jsonObj.GetValue('cpf').Value + '|' +
+                  jsonObj.GetValue('data').Value + '|' +
+                  jsonObj.GetValue('prazoEntrega').Value + '|' +
+                  jsonObj.GetValue('premio').ToString + '|' +
+                  jsonObj.GetValue('valor').Value
+                );
+              end;
+            end;
+          finally
+            CloseFile(arqResp);
+          end;
+
+          Result := True;
+        end;
+      401:
+      begin
+        retorno := 'Erro: 401 - Unauthorized';
+        TRoutines.GenerateLogs(tpError, retorno);
+        ShowTemporaryMessageForm(retorno, 3, mtError);
+      end;
+      500:
+      begin
+        retorno := 'Erro: 500 - Internal Server Error';
+        TRoutines.GenerateLogs(tpError, retorno);
+        ShowTemporaryMessageForm(retorno, 3, mtError);
+      end;
+      else
+      begin
+        retorno := 'Erro não especificado (HTTP ' + restResponse.StatusCode.ToString + ')';
+        TRoutines.GenerateLogs(tpError, retorno);
+        ShowTemporaryMessageForm(retorno, 3, mtError);
+      end;
+    end;
+
+  finally
+    jsonRoot.Free;
+    restRequest.Free;
+    restResponse.Free;
+    restClient.Free;
+  end;
+end;
+
+class function TControllerEuFalo.RescueCashBack(cashBack: TJSONArray;
+  token: String; out retorno: String): Boolean;
+var
+  restClient: TRESTClient;
+  restResponse: TRESTResponse;
+  restRequest: TRESTRequest;
+  singleObj, item: TJSONObject;
+  jsonBody: String;
+  arr: TJSONArray;
+begin
+  Result       := False;
+  restClient   := nil;
+  restResponse := nil;
+  restRequest  := nil;
+  retorno      := '';
+
+  try
+    restClient   := TRESTClient.Create(nil);
+    restResponse := TRESTResponse.Create(nil);
+    restRequest  := TRESTRequest.Create(nil);
+    try
+      restClient.BaseURL   := _URL;
+      restRequest.Client   := restClient;
+      restRequest.Response := restResponse;
+      restRequest.Timeout  := 8000;
+      restRequest.Method   := TRESTRequestMethod.rmPOST;
+      restRequest.Params.Clear;
+
+      // Cabeçalhos
+      restRequest.AddParameter('Content-Type', 'application/json', pkHTTPHEADER, [poDoNotEncode]);
+      restRequest.AddParameter('Accept', 'application/json', pkHTTPHEADER, [poDoNotEncode]);
+      restRequest.AddParameter('Authorization', 'Bearer ' + token, pkHTTPHEADER, [poDoNotEncode]);
+      restRequest.Resource := IfThen(cashBack.Count > 1,
+        '/api/programafidelidade/baixarvoucher/lista',
+        '/api/programafidelidade/baixarvoucher/item');
+
+      if cashBack.Count > 1 then
+        begin
+          // Envia o array completo
+          jsonBody := cashBack.ToJSON;
+        end
+      else if cashBack.Count = 1 then
+        begin
+          // Converte o único item do array para JSON de objeto
+          singleObj := cashBack.Items[0] as TJSONObject;
+          jsonBody := singleObj.ToJSON;
+        end
+      else
+        begin
+          // Caso não exista item (opcional)
+          // jsonBody := 'null';
+          jsonBody := '[]';  // ou escolha outra forma
+        end;
+
+      restRequest.AddBody(jsonBody,
+        TRESTContentType.ctAPPLICATION_JSON);
+
+      try
+        restRequest.Execute;
+        case restResponse.StatusCode of
+          200:
+            begin
+              Result := True;
+              TICashbackService.New.Use(cashBack, retorno);
+            end;
+          401:
+            begin
+              retorno := 'Erro: 401 - Unauthorized';
+              TRoutines.GenerateLogs(tpError, retorno);
+              ShowTemporaryMessageForm(retorno, 3, mtError);
+            end;
+          500:
+            begin
+              retorno := 'Erro: 500 - Internal Server Error';
+              TRoutines.GenerateLogs(tpError, retorno);
+              ShowTemporaryMessageForm(retorno, 3, mtError);
+            end
+          else
+            begin
+              retorno := 'Erro não especificado (HTTP ' +
+                restResponse.StatusCode.ToString + ')';
+              TRoutines.GenerateLogs(tpError, retorno);
+              ShowTemporaryMessageForm(retorno, 3, mtError);
+            end;
+        end;
+      except
+        on E: Exception do
+        begin
+          retorno := 'Erro de comunicação: ' + E.Message;
+          ShowTemporaryMessageForm(retorno, 3, mtError);
+        end;
+      end;
+
+    finally
+      restRequest.Free;
+      restResponse.Free;
+      restClient.Free;
+    end;
+  except
+    on E: Exception do
+    begin
+      retorno := 'Erro ao consultar cash bach: ' + E.Message;
+      Result := False;
+      Exit;
+    end;
+  end;
+end;
+
+class function TControllerEuFalo.CancelUsagedCashback(
+  cashBacks: TJSONArray; token: String; out retorno: String): Boolean;
+var
+  restClient: TRESTClient;
+  restResponse: TRESTResponse;
+  restRequest: TRESTRequest;
+  jsonObj, item: TJSONObject;
+  arr: TJSONArray;
+  i: Integer;
+  voucher, mensagem, prefixoErro: string;
+  sucessoTotal, sucessoItem: Boolean;
+  errorCount: Integer;
+
+  procedure AddErro(const Msg: string);
+  begin
+    Inc(errorCount);
+
+    if errorCount >= 2 then
+      prefixoErro := '19|Error|'
+    else
+      prefixoErro := '';
+
+    retorno := retorno + prefixoErro + Msg + sLineBreak;
+  end;
+
+begin
+  Result       := False;
+  sucessoTotal := True;
+  retorno      := '';
+  errorCount   := 0;
+
+  restClient   := TRESTClient.Create(nil);
+  restResponse := TRESTResponse.Create(nil);
+  restRequest  := TRESTRequest.Create(nil);
+
+  try
+    restClient.BaseURL   := _URL;
+    restRequest.Client   := restClient;
+    restRequest.Response := restResponse;
+    restRequest.Timeout  := 8000;
+    restRequest.Method   := TRESTRequestMethod.rmPOST;
+
+    restRequest.Params.Clear;
+    restRequest.AddParameter('Content-Type', 'application/json', pkHTTPHEADER, [poDoNotEncode]);
+    restRequest.AddParameter('Accept', 'application/json', pkHTTPHEADER, [poDoNotEncode]);
+    restRequest.AddParameter('Authorization', 'Bearer ' + token, pkHTTPHEADER, [poDoNotEncode]);
+
+    for i := 0 to cashBacks.Count - 1 do
+    begin
+      sucessoItem := False;
+
+      item := cashBacks.Items[i] as TJSONObject;
+      voucher := item.GetValue<string>('numeroVoucher');
+
+      restRequest.Resource :=
+        '/api/programafidelidade/cancelarbaixavoucher/item?codigoMovimento=' + voucher;
+
+      try
+        restRequest.Execute;
+
+        jsonObj := TJSONObject.ParseJSONValue(restResponse.Content) as TJSONObject;
+        if not Assigned(jsonObj) then
+          raise Exception.Create('Resposta inválida da API');
+
+        try
+          // SUCCESS
+          arr := jsonObj.GetValue<TJSONArray>('success');
+          if Assigned(arr) and (arr.Count > 0) then
+          begin
+            sucessoItem := True;
+
+            if (arr.Items[0] is TJSONObject) and
+               TJSONObject(arr.Items[0]).TryGetValue<string>('mensagem', mensagem) then
+              retorno := retorno + Format(
+                'Voucher %s baixado com sucesso. Mensagem: %s%s',
+                [voucher, mensagem, sLineBreak]
+              );
+          end;
+
+          // ERRORS
+          arr := jsonObj.GetValue<TJSONArray>('errors');
+          if Assigned(arr) and (arr.Count > 0) then
+          begin
+            sucessoItem := False;
+
+            if arr.Items[0] is TJSONObject then
+            begin
+              item := arr.Items[0] as TJSONObject;
+
+              if item.GetValue('mensagem') is TJSONArray then
+                AddErro(
+                  Format(
+                    'Voucher %s - Erro: %s',
+                    [
+                      voucher,
+                      (item.GetValue('mensagem') as TJSONArray).ToString
+                    ]
+                  )
+                )
+              else
+                AddErro(
+                  Format(
+                    'Voucher %s - Erro: %s',
+                    [
+                      voucher,
+                      item.GetValue<string>('mensagem')
+                    ]
+                  )
+                );
+            end;
+          end;
+
+          if not sucessoItem then
+            sucessoTotal := False;
+
+        finally
+          jsonObj.Free;
+        end;
+
+      except
+        on E: Exception do
+        begin
+          sucessoTotal := False;
+          AddErro(
+            Format(
+              'Voucher %s - Erro de comunicação: %s',
+              [voucher, E.Message]
+            )
+          );
+        end;
+      end;
+    end;
+
+    Result := sucessoTotal;
+
+  finally
+    restRequest.Free;
+    restResponse.Free;
+    restClient.Free;
   end;
 end;
 
