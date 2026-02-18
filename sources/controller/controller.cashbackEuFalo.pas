@@ -10,6 +10,7 @@ uses
   System.DateUtils,
   System.UITypes,
   System.Generics.Collections,
+  System.IOUtils,
 
   routines,
 
@@ -183,16 +184,25 @@ var
   idVenda: string;
 
   procedure WriteResponse(const code, status, text: string);
+  var
+    Dir, TempFile, FinalFile: string;
+    Content: TStringList;
   begin
-    ForceDirectories('C:\CSSISTEMAS');
-    if FileExists('C:\CSSISTEMAS\resp.001') then
-      DeleteFile('C:\CSSISTEMAS\resp.001');
-    AssignFile(arqResp, 'C:\CSSISTEMAS\resp.001');
-    ReWrite(arqResp);
+    Dir := 'C:\CSSISTEMAS';
+    TempFile := Dir + '\resp.tmp';
+    FinalFile := Dir + '\resp.001';
+
+    ForceDirectories(Dir);
+
+    Content := TStringList.Create;
     try
-      WriteLn(arqResp, code + '|' + status + '|' + text);
+      Content.Text := code + '|' + status + '|' + text;
+      Content.SaveToFile(TempFile, TEncoding.UTF8);
+
+      // ReplaceFile é atômico no Windows
+      ReplaceFile(PChar(FinalFile), PChar(TempFile), nil, 0, 0, 0);
     finally
-      CloseFile(arqResp);
+      Content.Free;
     end;
   end;
 
@@ -238,7 +248,7 @@ begin
     sLista.Delimiter := '|';
     sLista.StrictDelimiter := True;
 
-    AssignFile(arqReq, 'C:\CSSISTEMAS\req.001');
+    AssignFile(arqReq, 'C:\CSSISTEMAS\req.tmp');
     Reset(arqReq);
     try
       while not Eof(arqReq) do
@@ -837,6 +847,8 @@ begin
     finally
       // sempre fechar o arquivo req
       CloseFile(arqReq);
+      RenameFile('C:\CSSISTEMAS\req.tmp', 'C:\CSSISTEMAS\req.001');
+      Sleep(3000);
       // apaga arquivo de entrada apenas depois de fechar
       if FileExists('C:\CSSISTEMAS\req.001') then
         DeleteFile('C:\CSSISTEMAS\req.001');
@@ -2683,6 +2695,7 @@ var
   item: TJSONValue;
   jsonObj: TJSONObject;
   arqResp: TextFile;
+  SL: TStringList;
 begin
   Result  := False;
   retorno := '';
@@ -2710,24 +2723,35 @@ begin
       jsonRoot := TJSONObject.ParseJSONValue(restResponse.Content);
 
       if not (jsonRoot is TJSONArray) then
-        begin
-          TRoutines.GenerateLogs(tpError, retorno);
-          ShowTemporaryMessageForm(retorno, 3, mtError);
-            ForceDirectories('C:\CSSISTEMAS');
-            AssignFile(arqResp, 'C:\CSSISTEMAS\resp.001');
-            Rewrite(arqResp);
-            WriteLn('15','Error', retorno);
-            CloseFile(arqResp);
-          abort;
-        end;
+      begin
+        TRoutines.GenerateLogs(tpError, retorno);
+        ShowTemporaryMessageForm(retorno, 3, mtError);
+
+        ForceDirectories('C:\CSSISTEMAS');
+
+        TFile.WriteAllText(
+          'C:\CSSISTEMAS\resp.tmp',
+          '15|Error|' + retorno,
+          TEncoding.UTF8
+        );
+
+        if TFile.Exists('C:\CSSISTEMAS\resp.001') then
+          TFile.Delete('C:\CSSISTEMAS\resp.001');
+
+        TFile.Move(
+          'C:\CSSISTEMAS\resp.tmp',
+          'C:\CSSISTEMAS\resp.001'
+        );
+
+        Abort;
+      end;
 
       arr := jsonRoot as TJSONArray;
 
       TICashbackService.New.Save(arr, retorno);
 
       ForceDirectories('C:\CSSISTEMAS');
-      AssignFile(arqResp, 'C:\CSSISTEMAS\resp.001');
-      Rewrite(arqResp);
+      SL := TStringList.Create;
       try
         for item in arr do
         begin
@@ -2735,21 +2759,28 @@ begin
           begin
             jsonObj := item as TJSONObject;
 
-            WriteLn(arqResp,
+            SL.Add(
               '15|Success|' +
-              jsonObj.GetValue('chave').ToString + ';' +
-              jsonObj.GetValue('contatoCI').ToString + ';' +
-              jsonObj.GetValue('numeroVoucher').Value + ';' +
-              jsonObj.GetValue('cpf').Value + ';' +
-              jsonObj.GetValue('data').Value + ';' +
-              jsonObj.GetValue('prazoEntrega').Value + ';' +
-              jsonObj.GetValue('premio').ToString + ';' +
-              jsonObj.GetValue('valor').Value
+              jsonObj.GetValue<string>('chave', '') + ';' +
+              jsonObj.GetValue<string>('contatoCI', '') + ';' +
+              jsonObj.GetValue<string>('numeroVoucher', '') + ';' +
+              jsonObj.GetValue<string>('cpf', '') + ';' +
+              jsonObj.GetValue<string>('data', '') + ';' +
+              jsonObj.GetValue<string>('prazoEntrega', '') + ';' +
+              jsonObj.GetValue<string>('premio', '') + ';' +
+              jsonObj.GetValue<string>('valor', '')
             );
           end;
         end;
+
+        SL.SaveToFile('C:\CSSISTEMAS\resp.tmp', TEncoding.UTF8);
+
+        ReplaceFile(
+          'C:\CSSISTEMAS\resp.001',
+          'C:\CSSISTEMAS\resp.tmp',
+          nil, 0, 0, 0);
       finally
-        CloseFile(arqResp);
+        SL.Free;
       end;
 
       Result := True;
@@ -2914,6 +2945,7 @@ var
   item: TJSONValue;
   jsonObj: TJSONObject;
   arqResp: TextFile;
+   SL: TStringList;
 begin
   Result  := False;
   retorno := '';
@@ -2949,12 +2981,24 @@ begin
             begin
               TRoutines.GenerateLogs(tpError, retorno);
               ShowTemporaryMessageForm(retorno, 3, mtError);
-                ForceDirectories('C:\CSSISTEMAS');
-                AssignFile(arqResp, 'C:\CSSISTEMAS\resp.001');
-                Rewrite(arqResp);
-                WriteLn('17','Error', retorno);
-                CloseFile(arqResp);
-              abort;
+
+              ForceDirectories('C:\CSSISTEMAS');
+
+              TFile.WriteAllText(
+                'C:\CSSISTEMAS\resp.tmp',
+                '17|Error|' + retorno,
+                TEncoding.UTF8
+              );
+
+              if TFile.Exists('C:\CSSISTEMAS\resp.001') then
+                TFile.Delete('C:\CSSISTEMAS\resp.001');
+
+              TFile.Move(
+                'C:\CSSISTEMAS\resp.tmp',
+                'C:\CSSISTEMAS\resp.001'
+              );
+
+              Abort;
             end;
 
           arr := jsonRoot as TJSONArray;
@@ -2962,8 +3006,7 @@ begin
           TICashbackService.New.Save(arr, retorno);
 
           ForceDirectories('C:\CSSISTEMAS');
-          AssignFile(arqResp, 'C:\CSSISTEMAS\resp.001');
-          Rewrite(arqResp);
+          SL := TStringList.Create;
           try
             for item in arr do
             begin
@@ -2971,21 +3014,28 @@ begin
               begin
                 jsonObj := item as TJSONObject;
 
-                WriteLn(arqResp,
+                SL.Add(
                   '17|Success|' +
-                  jsonObj.GetValue('chave').ToString + '|' +
-                  jsonObj.GetValue('contatoCI').ToString + '|' +
-                  jsonObj.GetValue('numeroVoucher').Value + '|' +
-                  jsonObj.GetValue('cpf').Value + '|' +
-                  jsonObj.GetValue('data').Value + '|' +
-                  jsonObj.GetValue('prazoEntrega').Value + '|' +
-                  jsonObj.GetValue('premio').ToString + '|' +
-                  jsonObj.GetValue('valor').Value
+                  jsonObj.GetValue<string>('chave', '') + ';' +
+                  jsonObj.GetValue<string>('contatoCI', '') + ';' +
+                  jsonObj.GetValue<string>('numeroVoucher', '') + ';' +
+                  jsonObj.GetValue<string>('cpf', '') + ';' +
+                  jsonObj.GetValue<string>('data', '') + ';' +
+                  jsonObj.GetValue<string>('prazoEntrega', '') + ';' +
+                  jsonObj.GetValue<string>('premio', '') + ';' +
+                  jsonObj.GetValue<string>('valor', '')
                 );
               end;
             end;
+
+            SL.SaveToFile('C:\CSSISTEMAS\resp.tmp', TEncoding.UTF8);
+
+            ReplaceFile(
+              'C:\CSSISTEMAS\resp.001',
+              'C:\CSSISTEMAS\resp.tmp',
+              nil, 0, 0, 0);
           finally
-            CloseFile(arqResp);
+            SL.Free;
           end;
 
           Result := True;
