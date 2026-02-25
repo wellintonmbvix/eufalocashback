@@ -248,7 +248,7 @@ begin
     sLista.Delimiter := '|';
     sLista.StrictDelimiter := True;
 
-    AssignFile(arqReq, 'C:\CSSISTEMAS\req.tmp');
+    AssignFile(arqReq, 'C:\CSSISTEMAS\req.001');
     Reset(arqReq);
     try
       while not Eof(arqReq) do
@@ -847,8 +847,6 @@ begin
     finally
       // sempre fechar o arquivo req
       CloseFile(arqReq);
-      RenameFile('C:\CSSISTEMAS\req.tmp', 'C:\CSSISTEMAS\req.001');
-      Sleep(3000);
       // apaga arquivo de entrada apenas depois de fechar
       if FileExists('C:\CSSISTEMAS\req.001') then
         DeleteFile('C:\CSSISTEMAS\req.001');
