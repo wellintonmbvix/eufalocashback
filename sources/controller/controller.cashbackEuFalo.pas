@@ -197,10 +197,11 @@ var
     Content := TStringList.Create;
     try
       Content.Text := code + '|' + status + '|' + text;
-      Content.SaveToFile(TempFile, TEncoding.UTF8);
+      Content.SaveToFile(TempFile, TEncoding.ANSI);
 
       // ReplaceFile é atômico no Windows
-      ReplaceFile(PChar(FinalFile), PChar(TempFile), nil, 0, 0, 0);
+//      ReplaceFile(PChar(FinalFile), PChar(TempFile), nil, 0, 0, 0);
+     TFile.Move(TempFile, FinalFile);
     finally
       Content.Free;
     end;
@@ -2730,7 +2731,7 @@ begin
         TFile.WriteAllText(
           'C:\CSSISTEMAS\resp.tmp',
           '15|Error|' + retorno,
-          TEncoding.UTF8
+          TEncoding.ANSI
         );
 
         if TFile.Exists('C:\CSSISTEMAS\resp.001') then
@@ -2771,7 +2772,8 @@ begin
           end;
         end;
 
-        SL.SaveToFile('C:\CSSISTEMAS\resp.tmp', TEncoding.UTF8);
+        SL.WriteBOM := False;
+        SL.SaveToFile('C:\CSSISTEMAS\resp.tmp', TEncoding.ANSI);
 
         TFile.Move(
           'C:\CSSISTEMAS\resp.tmp',
@@ -2985,7 +2987,7 @@ begin
               TFile.WriteAllText(
                 'C:\CSSISTEMAS\resp.tmp',
                 '17|Error|' + retorno,
-                TEncoding.UTF8
+                TEncoding.ANSI
               );
 
               if TFile.Exists('C:\CSSISTEMAS\resp.001') then
@@ -3026,7 +3028,8 @@ begin
               end;
             end;
 
-            SL.SaveToFile('C:\CSSISTEMAS\resp.tmp', TEncoding.UTF8);
+            SL.WriteBOM := False;
+            SL.SaveToFile('C:\CSSISTEMAS\resp.tmp', TEncoding.ANSI);
 
            TFile.Move(
                 'C:\CSSISTEMAS\resp.tmp',
