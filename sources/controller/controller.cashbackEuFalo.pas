@@ -2773,10 +2773,10 @@ begin
 
         SL.SaveToFile('C:\CSSISTEMAS\resp.tmp', TEncoding.UTF8);
 
-        ReplaceFile(
-          'C:\CSSISTEMAS\resp.001',
+        TFile.Move(
           'C:\CSSISTEMAS\resp.tmp',
-          nil, 0, 0, 0);
+          'C:\CSSISTEMAS\resp.001'
+        );
       finally
         SL.Free;
       end;
@@ -3028,10 +3028,10 @@ begin
 
             SL.SaveToFile('C:\CSSISTEMAS\resp.tmp', TEncoding.UTF8);
 
-            ReplaceFile(
-              'C:\CSSISTEMAS\resp.001',
-              'C:\CSSISTEMAS\resp.tmp',
-              nil, 0, 0, 0);
+           TFile.Move(
+                'C:\CSSISTEMAS\resp.tmp',
+                'C:\CSSISTEMAS\resp.001'
+              );
           finally
             SL.Free;
           end;
