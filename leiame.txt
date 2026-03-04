@@ -1,0 +1,108 @@
+INSTRUÇÕES DE CONFIGURAÇÃO
+
+ARQUIVO config.ini
+
+O arquivo config.ini deve ser colocado obrigatoriamente no diretório:
+
+C:\CSSISTEMAS
+
+Caso a pasta C:\CSSISTEMAS não exista, crie-a manualmente antes de copiar o arquivo.
+
+O arquivo config.ini é responsável por definir:
+
+Tipo de conexão com o banco de dados (TCPIP ou EMBEDDED)
+
+Endereço do servidor (quando aplicável)
+
+Porta de comunicação
+
+Caminho completo do banco de dados (DB.FDB)
+
+Credenciais de acesso
+
+ARQUIVO DO BANCO DE DADOS (DB.FDB)
+
+O arquivo DB.FDB pode ser configurado de duas formas, dependendo do tipo de conexão escolhido.
+
+CENÁRIO 1 – MODO TCPIP (Cliente/Servidor)
+
+Utilizar este modo quando:
+
+O Firebird Server estiver instalado na máquina que hospedará o banco.
+
+Dois ou mais computadores acessarem o mesmo banco pela rede.
+
+PASSOS:
+
+Instale o Firebird Server na máquina que será o servidor.
+
+Coloque o arquivo DB.FDB em um diretório local do servidor, por exemplo:
+
+C:\Dados\DB.FDB
+
+IMPORTANTE:
+
+Não utilizar unidade mapeada (ex: P:).
+
+Não utilizar caminho UNC (ex: \Servidor\Dados\DB.FDB).
+
+Sempre utilizar o caminho local do servidor.
+
+Exemplo de configuração do config.ini:
+
+SS2=192.168.1.2
+SS3=TCPIP
+SS6=C:\Dados\DB.FDB
+
+Onde:
+SS2 = IP ou nome da máquina onde o Firebird Server está instalado (sem \)
+SS6 = Caminho local do banco no servidor
+
+CENÁRIO 2 – MODO EMBEDDED (Banco Local)
+
+Utilizar este modo quando:
+
+O Firebird NÃO estiver instalado como serviço.
+
+A aplicação utilizar o Firebird embarcado.
+
+O banco for acessado apenas pela máquina local.
+
+PASSOS:
+
+Coloque o arquivo DB.FDB em um diretório local da máquina, por exemplo:
+
+C:\CSSISTEMAS\DB.FDB
+
+Configure o config.ini da seguinte forma:
+
+SS3=EMBEDDED
+SS6=C:\CSSISTEMAS\DB.FDB
+
+IMPORTANTE:
+
+Não informar Servidor.
+
+Não informar Porta.
+
+O banco deve estar local na máquina.
+
+Não permite acesso simultâneo por múltiplos computadores.
+
+OBSERVAÇÕES IMPORTANTES
+
+Para conexão TCPIP:
+
+O serviço Firebird deve estar em execução no servidor.
+
+A porta 3050 deve estar liberada no firewall.
+
+O caminho do Database deve ser local no servidor.
+
+Para modo EMBEDDED:
+
+A DLL fbclient.dll (ou equivalente Embedded) deve estar na pasta da aplicação.
+
+O banco deve estar no mesmo computador da aplicação.
+
+O caminho informado em "Database" deve sempre ser completo e conter a extensão .FDB.

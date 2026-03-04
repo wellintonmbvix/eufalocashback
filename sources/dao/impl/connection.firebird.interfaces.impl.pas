@@ -6,6 +6,8 @@ uses
   System.SysUtils,
   System.Classes,
   System.IniFiles,
+  IdTCPClient,
+  IdGlobal,
 
   DATA.DB,
 
@@ -130,45 +132,82 @@ end;
 
 procedure TIConnectionFirebird.OnBeforeConnect(Sender: TObject);
 var
-  arqCfg : TIniFile;
-  banco  : String;
+  arqCfg   : TIniFile;
+  banco    : string;
+  servidor : string;
+  tipoConexao : string;
+  tcpTest     : TIdTCPClient;
+  usarTCPIP   : Boolean;
 begin
+  arqCfg := nil;
   try
     arqCfg := TIniFile.Create('C:\CSSISTEMAS\config.ini');
-    try
-      banco := arqCfg.ReadString('Dados','SS6', '');
-    except
-      on e: Exception do
-      begin
-        TRoutines.GenerateLogs(tpError, e.Message);
+    tcpTest := TIdTCPClient.Create(nil);
+
+    // Lê o caminho do banco e o endereço do servidor
+    banco    := arqCfg.ReadString('Dados','SS6','');
+    servidor := arqCfg.ReadString('Dados','SS2','localhost'); // default localhost
+    tipoConexao := arqCfg.ReadString('Dados','SS3','TCPIP'); // default TCPIP
+
+    if banco = '' then
+      raise Exception.Create('Caminho do banco não configurado no INI.');
+
+    usarTCPIP := False;
+
+    if servidor <> '' then
+    begin
+      try
+        tcpTest.Host := servidor;
+        tcpTest.Port := 3050; // porta default do Firebird
+        tcpTest.ConnectTimeout := 2000; // 2 segundos
+        tcpTest.Connect;
+        usarTCPIP := tcpTest.Connected;
+      except
+        usarTCPIP := False;
       end;
+
+      if tcpTest.Connected then
+        tcpTest.Disconnect;
     end;
+
+    if usarTCPIP then
+      TRoutines.GenerateLogs(tpNormal, 'Conectado via TCPIP')
+    else
+      TRoutines.GenerateLogs(tpNormal, 'Conectado via Embedded');
 
     try
       with FDConnection.Params do
       begin
         Clear;
-        // *** Parametros comentados são de configurações para
-        // *** ambientes em que o serviço do FireBird esteja sendo executado
-
         Add('DriverID=FB');
         Add('Database=' + banco);
         Add('User_Name=sysdba');
         Add('Password=masterkey');
-        Add('Server=');            //Add('Server=localhost');
-        Add('Protocol=Embedded');  //Add('Protocol=TCPIP');
         Add('CharacterSet=UTF8');
-                                   //Add('Port=3050');
+
+        if usarTCPIP then
+          begin
+            Add('Protocol=TCPIP');
+            Add('Server=' + servidor);
+            Add('Port=3050');
+          end
+          else
+          begin
+            Add('Protocol=Embedded');
+            // Não informar Server nem Port
+          end;
+
       end;
     except
       on E: Exception do
       begin
         TRoutines.GenerateLogs(tpError, E.Message);
-        raise Exception.Create(E.Message);
+        raise; // Repassa o erro para a aplicação tratar
       end;
     end;
 
   finally
+    tcpTest.Free;
     FreeAndNil(arqCfg);
   end;
 end;
