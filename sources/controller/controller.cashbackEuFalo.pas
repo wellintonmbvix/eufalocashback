@@ -950,7 +950,9 @@ begin
 
     // decide se precisa chamar o endpoint (se não existir token local ou expirado)
     needRequest := True;
-    if Assigned(tokenObj) and (tokenObj.expiration.Value > Now()) then
+    if Assigned(tokenObj) and
+      (TTimeZone.Local.ToUniversalTime(tokenObj.expiration.Value) >
+        TTimeZone.Local.ToUniversalTime(Now)) then
     begin
       Result := tokenObj.token.Value;
       needRequest := False;
