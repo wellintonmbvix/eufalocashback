@@ -112,7 +112,7 @@ begin
         FS.LongTimeFormat := 'hh:nn:ss';
         if item.TryGetValue('expiration', jv) then
           expiration := FormatDateTime('yyyy-mm-dd hh:nn:ss',
-            IncDay(StrToDateTime(jv.Value, FS), -1));
+            IncHour(IncDay(StrToDateTime(jv.Value, FS), -2), -1));
 
         sqlBlock.AppendLine('  vUserId = ' + QuotedStr(userID) + ';');
         sqlBlock.AppendLine('  vToken = ' + QuotedStr(token) + ';');
